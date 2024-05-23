@@ -1,5 +1,5 @@
 import asyncio
-import time
+#Realizado por:Miguel Criollo y Kevin Avila
 
 from ProyectoGrupal.async_counters import DesconectionCounter, InfiniteCounter
 from ProyectoGrupal.conection_errors import DesconnectionError
@@ -14,20 +14,18 @@ class RotatingCounter(InfiniteCounter):
 
 
 class SudamericanoExtraction:
-    TASKS_PER_SECOND = 20
+    TASKS_PER_INSTANCE = 20
 
     def __init__(self):
         self.task = None
         self.asyncioHasStopped = None
-        self.documentUrl = 'https://www.contraloria.gob.ec/sistema/WFDeclaracionTemporal.aspx?'
         self.desconection_counter = DesconectionCounter()
         self.ApiManager = SudamericanoClient(desconnectionCounter=self.desconection_counter)
 
     def startScript(self):
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         self.task = []
         self.asyncioHasStopped = False
@@ -53,14 +51,10 @@ class SudamericanoExtraction:
                 raise e
 
     async def gather_remaining_task(self, tasks):
-        # for task in tasks:
-        #     print(f"name: {task.get_name()}, state: {task.done()}")
-        unfinished_tasks = [task for task in tasks if not task.done()]
+        unfinished_tasks = [6 for task in tasks if not task.done()]
         print(f"Waiting for {len(unfinished_tasks)} to me completed")
         try:
-            results = await asyncio.gather(*tasks, return_exceptions=False)
-            # last_tasked_id = int(tasks[-1].get_name())
-            # gce_data = (result for result in results if not result is None)
+            await asyncio.gather(*tasks, return_exceptions=False)
             print("Finalized Data")
 
         except DesconnectionError as e:
@@ -70,7 +64,7 @@ class SudamericanoExtraction:
             raise e
 
     async def batchPetitions(self, tasks):
-        semaphore = asyncio.Semaphore(self.TASKS_PER_SECOND)
+        semaphore = asyncio.Semaphore(self.TASKS_PER_INSTANCE)
         Counter = RotatingCounter()
         event = asyncio.Event()
 
@@ -101,7 +95,7 @@ class SudamericanoExtraction:
                     raise e
 
         async def create_several_tasks():
-            for x in range(self.TASKS_PER_SECOND):
+            for x in range(self.TASKS_PER_INSTANCE):
                 new_value = await Counter.next_value()
                 if new_value is not None:
                     task = asyncio.create_task(run_task(new_value))
